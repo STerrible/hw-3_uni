@@ -35,3 +35,8 @@ uvicorn app.main:app --reload
 - `GET /` — сервис запущен
 - `GET /students` — список студентов с факультетами
 - `GET /docs` — Swagger UI
+
+примеры работы:
+![img.png](img.png)
+![img_1.png](img_1.png)
+![img_2.png](img_2.png)
