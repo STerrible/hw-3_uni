@@ -1,0 +1,32 @@
+from fastapi import FastAPI
+from sqlalchemy.orm import Session, joinedload
+
+from database import SessionLocal
+from models import Student
+
+app = FastAPI()
+
+
+@app.get("/students")
+def get_students():
+    session: Session = SessionLocal()
+
+    try:
+        students = (
+            session.query(Student)
+            .options(joinedload(Student.faculty))
+            .all()
+        )
+
+        result = []
+        for student in students:
+            result.append({
+                "id": student.id,
+                "surname": student.surname,
+                "first_name": student.first_name,
+                "faculty": student.faculty.name
+            })
+
+        return result
+    finally:
+        session.close()

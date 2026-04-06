@@ -1,0 +1,92 @@
+import csv
+
+from sqlalchemy.orm import Session
+
+from app.database import SessionLocal
+from app.models import Student, Faculty, Subject, StudentGrade
+
+
+def main():
+    session: Session = SessionLocal()
+
+    try:
+        # очищаем базу перед новой загрузкой
+        session.query(StudentGrade).delete()
+        session.query(Student).delete()
+        session.query(Subject).delete()
+        session.query(Faculty).delete()
+        session.commit()
+
+        faculties = {}
+        subjects = {}
+        students = {}
+
+        with open("students.csv", encoding="utf-8-sig", newline="") as file:
+            reader = csv.DictReader(file)
+
+            for row in reader:
+                surname = row["Фамилия"].strip()
+                first_name = row["Имя"].strip()
+                faculty_name = row["Факультет"].strip()
+                subject_name = row["Курс"].strip()
+                grade = int(row["Оценка"])
+
+                # факультет
+                if faculty_name not in faculties:
+                    faculty = Faculty(name=faculty_name)
+                    session.add(faculty)
+                    session.flush()
+                    faculties[faculty_name] = faculty
+                else:
+                    faculty = faculties[faculty_name]
+
+                # студент
+                # тут ключ = фамилия + имя + факультет
+                # потому что в твоем csv один и тот же человек по имени
+                # встречается на разных факультетах
+                student_key = (surname, first_name, faculty_name)
+
+                if student_key not in students:
+                    student = Student(
+                        surname=surname,
+                        first_name=first_name,
+                        faculty_id=faculty.id
+                    )
+                    session.add(student)
+                    session.flush()
+                    students[student_key] = student
+                else:
+                    student = students[student_key]
+
+                # предмет
+                if subject_name not in subjects:
+                    subject = Subject(name=subject_name)
+                    session.add(subject)
+                    session.flush()
+                    subjects[subject_name] = subject
+                else:
+                    subject = subjects[subject_name]
+
+                # оценка
+                # добавляем каждую строку как отдельную запись
+                # без проверок на уникальность student_id + subject_id
+                student_grade = StudentGrade(
+                    student_id=student.id,
+                    subject_id=subject.id,
+                    grade=grade
+                )
+                session.add(student_grade)
+
+        session.commit()
+        print("Данные успешно загружены")
+
+    except Exception as e:
+        session.rollback()
+        print(f"Ошибка при загрузке данных: {e}")
+
+    finally:
+        session.close()
+
+
+if __name__ == "__main__":
+    main()
